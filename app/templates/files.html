@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block main %}
+
+    {% include 'flash_messages.html' %}
+
+        <div class="row">
+            {% for i in range(images|length) %}
+                <div class="col-4">
+                    <img class="me-2 mb-3 img-thumbnail" src="{{url_for('get_image',filename=images[i])}}" alt="{{images[i]}}">
+                </div>
+                {% if i % 3 == 2 %}
+                    <div class="w-100"></div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+{% endblock %}

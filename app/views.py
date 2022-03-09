@@ -6,14 +6,31 @@ This file creates your application.
 """
 import os
 from app import app
-from flask import render_template, request, redirect, url_for, flash, session, abort
+from flask import render_template, request, redirect, url_for, flash, session, abort, send_from_directory
 from werkzeug.utils import secure_filename
 
+from app.forms import UploadForm
+
+def get_uploaded_images():
+    lst = []
+    for subdir,dirs,files in os.walk(os.path.join(app.config['UPLOAD_FOLDER'])):
+        for file in files:
+            lst.append(file)
+    return lst
 
 ###
 # Routing for your application.
 ###
+@app.route('/uploads/<filename>')
+def get_image(filename):
+    return send_from_directory(os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER']), filename)
 
+@app.route('/files/')
+def files():
+    if not session.get('logged_in'):
+        abort(401)
+    return render_template('files.html', images=get_uploaded_images())
+    
 @app.route('/')
 def home():
     """Render website's home page."""
@@ -23,27 +40,34 @@ def home():
 @app.route('/about/')
 def about():
     """Render the website's about page."""
-    return render_template('about.html', name="Mary Jane")
+    return render_template('about.html', name="Dominique Reddicks")
 
 
-@app.route('/upload', methods=['POST', 'GET'])
+@app.route('/upload/', methods=['POST', 'GET'])
 def upload():
     if not session.get('logged_in'):
         abort(401)
 
     # Instantiate your form class
+    form = UploadForm()
 
     # Validate file upload on submit
     if request.method == 'POST':
+        if form.validate_on_submit():
         # Get file data and save to your uploads folder
+            file = form.file.data
+            filename =  secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
 
-        flash('File Saved', 'success')
-        return redirect(url_for('home'))
+            flash('File Saved', 'success')
+            return redirect(url_for('home'))
+        else:
+            flash_errors(form)
 
-    return render_template('upload.html')
+    return render_template('upload.html', form=form)
 
 
-@app.route('/login', methods=['POST', 'GET'])
+@app.route('/login/', methods=['POST', 'GET'])
 def login():
     error = None
     if request.method == 'POST':
@@ -57,7 +81,7 @@ def login():
     return render_template('login.html', error=error)
 
 
-@app.route('/logout')
+@app.route('/logout/')
 def logout():
     session.pop('logged_in', None)
     flash('You were logged out', 'success')
